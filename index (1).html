@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>静座 | Meditation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap');
+
+  :root {
+    --bg-deep:#131C19; --bg-mid:#1C2620; --bg-low:#20291F;
+    --cream:#EDE6D6; --sage:#7C9885; --gold:#C9A66B;
+    --muted:#B8C4BB; --dim:#6B7A70; --panel:rgba(237,230,214,0.08);
+    --card-black:#0A0A0A; --card-border:rgba(237,230,214,0.08);
+    --gray-text:#8A8A8A; --light-text:#D8D8D8; --modal-bg:#24312B;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:linear-gradient(180deg,var(--bg-deep) 0%,var(--bg-mid) 55%,var(--bg-low) 100%);
+    font-family:'Zen Maru Gothic', sans-serif; }
+  .font-display { font-family:'Shippori Mincho', serif; }
+  .wrap { max-width:420px; margin:0 auto; padding:32px 20px 56px; }
+  h1 { text-align:center; font-size:24px; letter-spacing:0.05em; color:var(--cream); margin:0; }
+  .subtitle { text-align:center; font-size:12px; letter-spacing:0.1em; color:var(--sage); margin:4px 0 0; }
+  .streak { text-align:center; font-size:12px; color:var(--gold); margin:8px 0 0; display:none; }
+
+  .tabs { display:flex; justify-content:center; gap:8px; margin:24px 0 32px; }
+  .tab-btn { padding:8px 20px; border-radius:999px; border:none; font-size:14px; cursor:pointer;
+    background:var(--panel); color:var(--muted); font-family:inherit; }
+  .tab-btn.active { background:var(--gold); color:var(--bg-deep); font-weight:600; }
+
+  .view { display:none; }
+  .view.active { display:flex; flex-direction:column; align-items:center; }
+
+  .ring-wrap { position:relative; width:220px; height:220px; }
+  .breath-glow { position:absolute; top:30px; left:30px; width:160px; height:160px; border-radius:50%;
+    background:radial-gradient(circle, rgba(201,166,107,0.25) 0%, rgba(201,166,107,0) 70%);
+    animation: breathe 8s ease-in-out infinite; display:none; }
+  @keyframes breathe { 0%,100% { transform:scale(0.72); opacity:0.35; } 50% { transform:scale(1); opacity:0.7; } }
+  .ring-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .time-text { font-size:36px; color:var(--cream); font-family:'Shippori Mincho', serif; }
+  .status-text { font-size:12px; color:var(--sage); margin-top:4px; }
+  .breath-labels { position:relative; height:16px; margin-top:4px; display:none; }
+  .breath-labels span { position:absolute; inset:0; text-align:center; font-size:12px; color:var(--sage); }
+  .label-inhale { animation: fadeInhale 8s ease-in-out infinite; }
+  .label-exhale { animation: fadeExhale 8s ease-in-out infinite; }
+  @keyframes fadeInhale { 0%,45% { opacity:1; } 50%,95% { opacity:0; } 100% { opacity:1; } }
+  @keyframes fadeExhale { 0%,45% { opacity:0; } 50%,95% { opacity:1; } 100% { opacity:0; } }
+
+  .presets { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:32px; max-width:300px; }
+  .preset-btn { padding:6px 12px; border-radius:999px; border:none; font-size:12px; cursor:pointer;
+    background:var(--panel); color:var(--muted); font-family:inherit; }
+  .preset-btn.active { background:var(--gold); color:var(--bg-deep); font-weight:600; }
+  .preset-btn:disabled, .step-btn:disabled { opacity:0.3; cursor:default; }
+
+  .duration-row { display:flex; align-items:center; gap:16px; margin-top:16px; }
+  .step-btn { width:36px; height:36px; border-radius:50%; border:none; font-size:18px; cursor:pointer;
+    background:var(--panel); color:var(--cream); }
+  .duration-label { font-size:14px; color:var(--muted); width:80px; text-align:center; }
+  .hint { font-size:11px; color:var(--dim); margin-top:8px; display:none; }
+
+  .controls-row { display:flex; align-items:center; gap:16px; margin-top:32px; }
+  .icon-btn { width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--panel); color:var(--dim); display:flex; align-items:center; justify-content:center; }
+  .icon-btn.on { color:var(--gold); }
+  .play-btn { width:64px; height:64px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--gold); display:flex; align-items:center; justify-content:center; color:var(--bg-deep); }
+
+  .volume-row { display:none; align-items:center; gap:8px; margin-top:16px; width:160px; }
+  .volume-row svg { color:var(--dim); flex-shrink:0; }
+  input[type="range"] { -webkit-appearance:none; appearance:none; background:rgba(237,230,214,0.15);
+    height:3px; border-radius:999px; flex:1; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    background:var(--gold); cursor:pointer; }
+  input[type="range"]::-moz-range-thumb { width:13px; height:13px; border-radius:50%; background:var(--gold); border:none; cursor:pointer; }
+
+  .cal-header { display:flex; align-items:center; justify-content:space-between; width:100%; margin-bottom:16px; padding:0 4px; }
+  .cal-nav-btn { background:none; border:none; color:var(--muted); cursor:pointer; padding:6px; display:flex; }
+  .cal-title { text-align:center; }
+  .cal-month { font-size:18px; color:var(--cream); font-family:'Shippori Mincho', serif; }
+  .cal-count { font-size:12px; color:var(--sage); margin-top:2px; }
+
+  .stamp-card { width:100%; border-radius:16px; padding:16px; background:var(--card-black);
+    border:1px solid var(--card-border); box-shadow:0 8px 24px rgba(0,0,0,0.45); }
+  .weekday-row, .day-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .weekday-row { margin-bottom:8px; }
+  .weekday-row div { text-align:center; font-size:11px; color:var(--gray-text); }
+  .day-cell { position:relative; aspect-ratio:1/1; border-radius:8px; border:1px solid transparent;
+    background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .day-cell.today { background:rgba(201,166,107,0.15); border-color:var(--gold); }
+  .day-cell.empty { background:none; cursor:default; }
+  .day-num { position:absolute; top:4px; left:4px; font-size:10px; color:var(--gray-text); }
+  .stamp { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif; font-size:15px; opacity:0.9; }
+  .cal-hint { text-align:center; font-size:12px; color:var(--dim); margin-top:16px; }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(10,15,12,0.6); display:none;
+    align-items:center; justify-content:center; z-index:50; }
+  .modal-overlay.show { display:flex; }
+  .modal-box { width:100%; max-width:380px; border-radius:16px; padding:24px; background:var(--modal-bg); margin:0 16px; }
+  .modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .modal-date { font-size:14px; color:var(--muted); }
+  .modal-close { background:none; border:none; color:var(--sage); cursor:pointer; display:flex; }
+  .sticker-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .sticker-choice { aspect-ratio:1/1; border-radius:50%; background:transparent; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-family:'Shippori Mincho', serif; font-size:18px; }
+  .remove-btn { width:100%; margin-top:16px; font-size:12px; padding:8px; border-radius:999px; border:none;
+    background:var(--panel); color:var(--muted); cursor:pointer; font-family:inherit; display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="font-display">静座</h1>
+  <p class="subtitle">MEDITATION</p>
+  <p class="streak" id="streakText"></p>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="timer">タイマー</button>
+    <button class="tab-btn" data-tab="calendar">カレンダー</button>
+  </div>
+
+  <!-- Timer view -->
+  <div class="view active" id="view-timer">
+    <div class="ring-wrap">
+      <div class="breath-glow" id="breathGlow"></div>
+      <svg width="220" height="220" viewBox="0 0 220 220">
+        <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(237,230,214,0.1)" stroke-width="6" />
+        <circle id="progressRing" cx="110" cy="110" r="92" fill="none" stroke="#C9A66B" stroke-width="6"
+          stroke-linecap="round" transform="rotate(-90 110 110)" style="transition: stroke-dashoffset 1s linear;" />
+      </svg>
+      <div class="ring-overlay">
+        <span class="time-text" id="timeText">10:00</span>
+        <span class="status-text" id="statusText">準備はいいですか</span>
+        <div class="breath-labels" id="breathLabels">
+          <span class="label-inhale">吸って</span>
+          <span class="label-exhale">吐いて</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="presets" id="presets"></div>
+
+    <div class="duration-row">
+      <button class="step-btn" id="stepMinus">−</button>
+      <span class="duration-label" id="durationLabel">10 分</span>
+      <button class="step-btn" id="stepPlus">＋</button>
+    </div>
+    <p class="hint" id="editHint">時間を変えるにはリセットしてください</p>
+
+    <div class="controls-row">
+      <button class="icon-btn on" id="musicBtn" aria-label="音楽の切り替え"></button>
+      <button class="play-btn" id="playBtn" aria-label="開始"></button>
+      <button class="icon-btn" id="resetBtn" aria-label="リセット"></button>
+    </div>
+
+    <div class="volume-row" id="volumeRow"></div>
+  </div>
+
+  <!-- Calendar view -->
+  <div class="view" id="view-calendar">
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="prevMonth"></button>
+      <div class="cal-title">
+        <div class="cal-month" id="calMonth"></div>
+        <div class="cal-count" id="calCount"></div>
+      </div>
+      <button class="cal-nav-btn" id="nextMonth"></button>
+    </div>
+    <div class="stamp-card">
+      <div class="weekday-row">
+        <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+      </div>
+      <div class="day-grid" id="dayGrid"></div>
+    </div>
+    <p class="cal-hint">日付をタップしてスタンプを選べます</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-date" id="modalDateText"></span>
+      <button class="modal-close" id="modalClose"></button>
+    </div>
+    <div class="sticker-grid" id="stickerGrid"></div>
+    <button class="remove-btn" id="removeStickerBtn">スタンプを消す</button>
+  </div>
+</div>
+
+<audio id="ambientAudio" autoplay playsinline style="display:none;"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Icons ----------
+  const ICONS = {
+    play: '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+    pause: '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>',
+    reset: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>',
+    music: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+    musicSmall: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+    volumeX: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>',
+    volumeXSmall: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>',
+    chevronLeft: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+    chevronRight: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
+    close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+  };
+
+  const STICKERS = [
+    { id: "moon",   kanji: "月", color: "#7FA8D9" },
+    { id: "flower", kanji: "花", color: "#E0796A" },
+    { id: "wave",   kanji: "波", color: "#7FC49A" },
+    { id: "star",   kanji: "星", color: "#E0C24C" },
+    { id: "leaf",   kanji: "葉", color: "#B47FC2" }
+  ];
+  const PRESETS = [3, 5, 10, 15, 20, 30];
+  const STORAGE_KEY = "meditation-stickers";
+  const R = 92, CIRC = 2 * Math.PI * R;
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+  function dateKey(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function rotationFor(key) {
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+    return (hash % 14) - 7;
+  }
+
+  // ---------- State ----------
+  let state = {
+    tab: "timer",
+    durationMinutes: 10,
+    remaining: 10 * 60,
+    isRunning: false,
+    musicOn: true,
+    ambientVolume: 0.5,
+    stickers: {},
+    currentMonth: (() => { const d = new Date(); d.setDate(1); return d; })(),
+    modalDate: null
+  };
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    state.stickers = saved ? JSON.parse(saved) : {};
+  } catch (e) { state.stickers = {}; }
+
+  function saveStickers() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.stickers)); } catch (e) {}
+  }
+
+  // ---------- Audio ----------
+  let audioCtx = null, mediaDest = null, ambient = null, sessionEnd = null, wakeLock = null;
+  const audioEl = document.getElementById("ambientAudio");
+
+  function ensureCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+      mediaDest = audioCtx.createMediaStreamDestination();
+      audioEl.srcObject = mediaDest.stream;
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function startAmbient() {
+    if (ambient) return;
+    const ctx = ensureCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0.0001;
+    master.connect(mediaDest);
+    master.gain.linearRampToValueAtTime(0.02 + state.ambientVolume * 0.08, ctx.currentTime + 2.5);
+    audioEl.play().catch(() => {});
+    const freqs = [110, 164.81, 220];
+    const oscillators = freqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.value = 0.4 / (i + 1);
+      osc.connect(g).connect(master);
+      osc.start();
+      return osc;
+    });
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.06;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.015;
+    lfo.connect(lfoGain).connect(master.gain);
+    lfo.start();
+    ambient = { master, oscillators, lfo };
+  }
+
+  function stopAmbient() {
+    if (!ambient || !audioCtx) { ambient = null; return; }
+    const now = audioCtx.currentTime;
+    try {
+      ambient.master.gain.cancelScheduledValues(now);
+      ambient.master.gain.setValueAtTime(ambient.master.gain.value, now);
+      ambient.master.gain.linearRampToValueAtTime(0.0001, now + 0.8);
+    } catch (e) {}
+    const toStop = ambient;
+    setTimeout(() => {
+      toStop.oscillators.forEach((o) => { try { o.stop(); } catch (e) {} });
+      try { toStop.lfo.stop(); } catch (e) {}
+    }, 900);
+    ambient = null;
+  }
+
+  function playBell() {
+    const ctx = ensureCtx();
+    const now = ctx.currentTime;
+    [523.25, 659.25, 784].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18 / (i + 1), now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.5);
+      osc.connect(gain).connect(mediaDest);
+      osc.start(now);
+      osc.stop(now + 4.6);
+    });
+    audioEl.play().catch(() => {});
+  }
+
+  async function requestWakeLock() {
+    try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
+  }
+  function releaseWakeLock() {
+    try { wakeLock && wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+
+  function updateMediaSession(playbackState) {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: "瞑想タイマー", artist: "静座", album: state.durationMinutes + "分セッション"
+      });
+      navigator.mediaSession.playbackState = playbackState;
+      navigator.mediaSession.setActionHandler("play", handleStart);
+      navigator.mediaSession.setActionHandler("pause", handlePause);
+      navigator.mediaSession.setActionHandler("stop", handleReset);
+    } catch (e) {}
+  }
+
+  // ---------- Timer logic ----------
+  let tickIntervalId = null;
+
+  function tick() {
+    if (sessionEnd == null) return;
+    const left = Math.max(0, Math.ceil((sessionEnd - Date.now()) / 1000));
+    state.remaining = left;
+    renderTimer();
+    if (left <= 0) handleComplete();
+  }
+
+  function startTicking() {
+    stopTicking();
+    tick();
+    tickIntervalId = setInterval(tick, 1000);
+  }
+  function stopTicking() {
+    if (tickIntervalId) clearInterval(tickIntervalId);
+    tickIntervalId = null;
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.isRunning) {
+      tick();
+      requestWakeLock();
+    }
+  });
+
+  function handleComplete() {
+    state.isRunning = false;
+    sessionEnd = null;
+    state.remaining = 0;
+    stopTicking();
+    stopAmbient();
+    releaseWakeLock();
+    playBell();
+    updateMediaSession("paused");
+    renderTimer();
+    openModal(dateKey(new Date()));
+  }
+
+  function handleStart() {
+    const base = state.remaining <= 0 ? state.durationMinutes * 60 : state.remaining;
+    sessionEnd = Date.now() + base * 1000;
+    state.remaining = base;
+    state.isRunning = true;
+    if (state.musicOn) startAmbient();
+    requestWakeLock();
+    updateMediaSession("playing");
+    startTicking();
+    renderTimer();
+  }
+
+  function handlePause() {
+    state.isRunning = false;
+    sessionEnd = null;
+    stopTicking();
+    stopAmbient();
+    releaseWakeLock();
+    updateMediaSession("paused");
+    renderTimer();
+  }
+
+  function handleReset() {
+    state.isRunning = false;
+    sessionEnd = null;
+    stopTicking();
+    stopAmbient();
+    releaseWakeLock();
+    state.remaining = state.durationMinutes * 60;
+    updateMediaSession("paused");
+    renderTimer();
+  }
+
+  function toggleMusic() {
+    state.musicOn = !state.musicOn;
+    if (state.isRunning) {
+      if (state.musicOn) startAmbient(); else stopAmbient();
+    }
+    renderTimer();
+  }
+
+  function canEditDuration() {
+    return !state.isRunning && state.remaining === state.durationMinutes * 60;
+  }
+
+  function changeDuration(delta) {
+    if (!canEditDuration()) return;
+    state.durationMinutes = Math.min(60, Math.max(1, state.durationMinutes + delta));
+    state.remaining = state.durationMinutes * 60;
+    renderTimer();
+  }
+
+  function selectPreset(min) {
+    if (!canEditDuration()) return;
+    state.durationMinutes = min;
+    state.remaining = min * 60;
+    renderTimer();
+  }
+
+  // ---------- Streak ----------
+  function calcStreak() {
+    let streak = 0;
+    const cursor = new Date();
+    if (!state.stickers[dateKey(cursor)]) cursor.setDate(cursor.getDate() - 1);
+    while (state.stickers[dateKey(cursor)]) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  // ---------- Modal ----------
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalDateText = document.getElementById("modalDateText");
+  const stickerGrid = document.getElementById("stickerGrid");
+  const removeStickerBtn = document.getElementById("removeStickerBtn");
+
+  function openModal(key) {
+    state.modalDate = key;
+    modalDateText.textContent = key + " のスタンプ";
+    stickerGrid.innerHTML = "";
+    STICKERS.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.className = "sticker-choice";
+      btn.style.border = "2px solid " + s.color;
+      btn.style.color = s.color;
+      btn.style.background = state.stickers[key] === s.id ? s.color + "22" : "transparent";
+      btn.textContent = s.kanji;
+      btn.onclick = () => {
+        state.stickers[key] = s.id;
+        saveStickers();
+        closeModal();
+        renderAll();
+      };
+      stickerGrid.appendChild(btn);
+    });
+    removeStickerBtn.style.display = state.stickers[key] ? "block" : "none";
+    modalOverlay.classList.add("show");
+  }
+  function closeModal() { modalOverlay.classList.remove("show"); state.modalDate = null; }
+
+  document.getElementById("modalClose").innerHTML = ICONS.close;
+  document.getElementById("modalClose").onclick = closeModal;
+  modalOverlay.onclick = (e) => { if (e.target === modalOverlay) closeModal(); };
+  removeStickerBtn.onclick = () => {
+    if (state.modalDate) {
+      delete state.stickers[state.modalDate];
+      saveStickers();
+    }
+    closeModal();
+    renderAll();
+  };
+
+  // ---------- Render: timer ----------
+  const ring = document.getElementById("progressRing");
+  const timeText = document.getElementById("timeText");
+  const statusText = document.getElementById("statusText");
+  const breathGlow = document.getElementById("breathGlow");
+  const breathLabels = document.getElementById("breathLabels");
+  const durationLabel = document.getElementById("durationLabel");
+  const editHint = document.getElementById("editHint");
+  const musicBtn = document.getElementById("musicBtn");
+  const playBtn = document.getElementById("playBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const volumeRow = document.getElementById("volumeRow");
+  const presetsEl = document.getElementById("presets");
+
+  PRESETS.forEach((min) => {
+    const btn = document.createElement("button");
+    btn.className = "preset-btn";
+    btn.textContent = min + "分";
+    btn.onclick = () => selectPreset(min);
+    btn.dataset.min = min;
+    presetsEl.appendChild(btn);
+  });
+
+  volumeRow.innerHTML =
+    '<span id="volIconLow"></span><input type="range" id="volSlider" min="0" max="1" step="0.05" />' +
+    '<span id="volIconHigh"></span>';
+  document.getElementById("volIconLow").innerHTML = ICONS.volumeXSmall;
+  document.getElementById("volIconHigh").innerHTML = ICONS.musicSmall;
+  const volSlider = document.getElementById("volSlider");
+  volSlider.value = state.ambientVolume;
+  volSlider.oninput = (e) => {
+    state.ambientVolume = parseFloat(e.target.value);
+    if (ambient && audioCtx) {
+      ambient.master.gain.cancelScheduledValues(audioCtx.currentTime);
+      ambient.master.gain.linearRampToValueAtTime(0.02 + state.ambientVolume * 0.08, audioCtx.currentTime + 0.2);
+    }
+  };
+
+  musicBtn.onclick = toggleMusic;
+  resetBtn.onclick = handleReset;
+  resetBtn.innerHTML = ICONS.reset;
+  document.getElementById("stepMinus").onclick = () => changeDuration(-1);
+  document.getElementById("stepPlus").onclick = () => changeDuration(1);
+  playBtn.onclick = () => { if (state.isRunning) handlePause(); else handleStart(); };
+
+  function renderTimer() {
+    const total = state.durationMinutes * 60;
+    const progress = total > 0 ? 1 - state.remaining / total : 0;
+    ring.setAttribute("stroke-dasharray", CIRC);
+    ring.setAttribute("stroke-dashoffset", CIRC * (1 - progress));
+    timeText.textContent = fmtTime(state.remaining);
+
+    breathGlow.style.display = state.isRunning ? "block" : "none";
+    breathLabels.style.display = state.isRunning ? "block" : "none";
+    statusText.style.display = state.isRunning ? "none" : "block";
+    statusText.textContent = "準備はいいですか";
+
+    durationLabel.textContent = state.durationMinutes + " 分";
+    const editable = canEditDuration();
+    document.getElementById("stepMinus").disabled = !editable;
+    document.getElementById("stepPlus").disabled = !editable;
+    editHint.style.display = editable ? "none" : "block";
+    presetsEl.querySelectorAll(".preset-btn").forEach((btn) => {
+      const min = parseInt(btn.dataset.min, 10);
+      btn.disabled = !editable;
+      btn.classList.toggle("active", min === state.durationMinutes);
+    });
+
+    musicBtn.innerHTML = state.musicOn ? ICONS.music : ICONS.volumeX;
+    musicBtn.classList.toggle("on", state.musicOn);
+    volumeRow.style.display = state.musicOn ? "flex" : "none";
+
+    playBtn.innerHTML = state.isRunning ? ICONS.pause : ICONS.play;
+    playBtn.setAttribute("aria-label", state.isRunning ? "一時停止" : "開始");
+
+    const streak = calcStreak();
+    const streakEl = document.getElementById("streakText");
+    if (streak > 0) {
+      streakEl.style.display = "block";
+      streakEl.textContent = "🔥 " + streak + "日連続";
+    } else {
+      streakEl.style.display = "none";
+    }
+  }
+
+  // ---------- Render: calendar ----------
+  const calMonth = document.getElementById("calMonth");
+  const calCount = document.getElementById("calCount");
+  const dayGrid = document.getElementById("dayGrid");
+  const prevMonthBtn = document.getElementById("prevMonth");
+  const nextMonthBtn = document.getElementById("nextMonth");
+  prevMonthBtn.innerHTML = ICONS.chevronLeft;
+  nextMonthBtn.innerHTML = ICONS.chevronRight;
+  prevMonthBtn.onclick = () => {
+    state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
+    renderCalendar();
+  };
+  nextMonthBtn.onclick = () => {
+    state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
+    renderCalendar();
+  };
+
+  function renderCalendar() {
+    const year = state.currentMonth.getFullYear();
+    const month = state.currentMonth.getMonth();
+    calMonth.textContent = year + "年 " + (month + 1) + "月";
+
+    const monthKeyPrefix = year + "-" + String(month + 1).padStart(2, "0");
+    const monthCount = Object.keys(state.stickers).filter((k) => k.startsWith(monthKeyPrefix)).length;
+    calCount.textContent = "今月のスタンプ " + monthCount + " 個";
+
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const todayKey = dateKey(new Date());
+
+    dayGrid.innerHTML = "";
+    for (let i = 0; i < firstWeekday; i++) {
+      const cell = document.createElement("div");
+      cell.className = "day-cell empty";
+      dayGrid.appendChild(cell);
+    }
+    for (let day = 1; day <= totalDays; day++) {
+      const d = new Date(year, month, day);
+      const key = dateKey(d);
+      const stickerId = state.stickers[key];
+      const stamp = stickerId ? STICKERS.find((s) => s.id === stickerId) : null;
+      const isToday = key === todayKey;
+
+      const cell = document.createElement("div");
+      cell.className = "day-cell" + (isToday ? " today" : "");
+      cell.onclick = () => openModal(key);
+
+      const num = document.createElement("span");
+      num.className = "day-num";
+      num.textContent = day;
+      cell.appendChild(num);
+
+      if (stamp) {
+        const stampEl = document.createElement("span");
+        stampEl.className = "stamp";
+        stampEl.style.border = "1.5px solid " + stamp.color;
+        stampEl.style.color = stamp.color;
+        stampEl.style.transform = "rotate(" + rotationFor(key) + "deg)";
+        stampEl.textContent = stamp.kanji;
+        cell.appendChild(stampEl);
+      }
+      dayGrid.appendChild(cell);
+    }
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.onclick = () => {
+      state.tab = btn.dataset.tab;
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.getElementById("view-timer").classList.toggle("active", state.tab === "timer");
+      document.getElementById("view-calendar").classList.toggle("active", state.tab === "calendar");
+    };
+  });
+
+  function renderAll() { renderTimer(); renderCalendar(); }
+  renderAll();
+})();
+</script>
+</body>
+</html>
